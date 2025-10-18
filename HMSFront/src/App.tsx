@@ -1,4 +1,10 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
 import Layout from "./Components/Layout";
 import DashboardPage from "./Pages/DashboardPage";
 import Settings from "./Pages/Settings";
@@ -11,6 +17,7 @@ import LoginPage from "./Pages/LoginPage";
 
 // Public site pages
 import HomePage from "./Pages/HomePage";
+import InvoiceList from "./Pages/InvoiceList";
 // import AboutPage from "./Pages/Public/AboutPage";
 // import ServicesPage from "./Pages/Public/ServicesPage";
 // import ContactPage from "./Pages/Public/ContactPage";
@@ -19,8 +26,10 @@ import HomePage from "./Pages/HomePage";
 const isAuthenticated = () => !!localStorage.getItem("sessionToken");
 
 // Guards
-const PrivateRoute = () => (isAuthenticated() ? <Outlet /> : <Navigate to="/login" replace />);
-const PublicAuthOnly = () => (!isAuthenticated() ? <Outlet /> : <Navigate to="/dashboard" replace />);
+const PrivateRoute = () =>
+  isAuthenticated() ? <Outlet /> : <Navigate to="/login" replace />;
+const PublicAuthOnly = () =>
+  !isAuthenticated() ? <Outlet /> : <Navigate to="/dashboard" replace />;
 
 const App = () => {
   return (
@@ -45,7 +54,8 @@ const App = () => {
             <Route path="roles" element={<RoleManagement />} />
             <Route path="rooms" element={<RoomManagement />} />
             <Route path="bookings" element={<BookingForm />} />
-            <Route path="guests" element={<Guestform />} />
+            <Route path="InvoiceList" element={<InvoiceList />} />
+            <Route path="settings" element={<Settings />} />
             <Route path="settings" element={<Settings />} />
           </Route>
         </Route>

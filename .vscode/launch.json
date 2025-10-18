@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Chrome (Vite)",
+      "type": "chrome",
+      "request": "launch",
+      "preLaunchTask": "npm: dev",
+      "url": "http://localhost:5173/",
+      "webRoot": "${workspaceFolder}/HMSFront",
+      "sourceMapPathOverrides": {
+        "vite:///src/*": "${workspaceFolder}/HMSFront/src/*"
+      }
+    },
+    {
+      "name": "Launch Edge (Vite)",
+      "type": "msedge",
+      "request": "launch",
+      "preLaunchTask": "npm: dev",
+      "url": "http://localhost:5173/",
+      "webRoot": "${workspaceFolder}/HMSFront",
+      "sourceMapPathOverrides": {
+        "vite:///src/*": "${workspaceFolder}/HMSFront/src/*"
+      }
+    }
+  ]
+}

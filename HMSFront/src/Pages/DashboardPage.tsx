@@ -1,28 +1,102 @@
-import { Box, Typography, Grid, Paper, Card, CardContent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
-import { Bar } from 'react-chartjs-2'; 
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { useEffect, useState } from "react";
+import {
+  Box,
+  Typography,
+  Grid,
+  Paper,
+  Card,
+  CardContent,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  CircularProgress,
+} from "@mui/material";
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { getRooms, getBookings, getInvoices, getGuests } from "../Services/Services";
 
-// Register chart.js components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const DashboardPage = () => {
-  // Static Data for the Table
-  const tableData = [
-    { id: 1, name: 'John Doe', age: 28, city: 'New York' },
-    { id: 2, name: 'Jane Smith', age: 34, city: 'Los Angeles' },
-    { id: 3, name: 'Sam Wilson', age: 23, city: 'Chicago' },
-    { id: 4, name: 'Sara Lee', age: 29, city: 'Miami' },
-  ];
+  const [loading, setLoading] = useState(true);
+  const [totalRooms, setTotalRooms] = useState(0);
+  const [occupiedRooms, setOccupiedRooms] = useState(0);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [todayBookings, setTodayBookings] = useState(0);
+  const [guestsCount, setGuestsCount] = useState(0);
+  const [recentBookings, setRecentBookings] = useState<any[]>([]);
 
-  // Static Data for the Bar Graph
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const [rooms, bookings, invoices, guests] = await Promise.all([
+          getRooms(),
+          getBookings(),
+          getInvoices(),
+          getGuests(),
+        ]);
+
+        setTotalRooms(rooms.length);
+        setOccupiedRooms(rooms.filter((r) => r.status === "Booked").length);
+        setTotalRevenue(invoices.reduce((sum, i) => sum + (i.amountPaid || 0), 0));
+        setGuestsCount(guests.length);
+
+        const today = new Date().toISOString().split("T")[0];
+        const todayBookingsCount = bookings.filter(
+          (b) => b.checkInDate.split("T")[0] === today
+        ).length;
+        setTodayBookings(todayBookingsCount);
+
+        setRecentBookings(
+          bookings
+            .sort(
+              (a, b) => new Date(b.checkInDate).getTime() - new Date(a.checkInDate).getTime()
+            )
+            .slice(0, 5)
+        );
+      } catch (error) {
+        console.error("Failed to load dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  // Chart data (simulate revenue by month from invoices)
+  const monthlyRevenue = Array(12).fill(0);
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  // Aggregate monthly revenue dynamically
+  recentBookings.forEach((booking) => {
+    const month = new Date(booking.checkInDate).getMonth();
+    monthlyRevenue[month] += booking.totalPrice || 0;
+  });
+
   const data = {
-    labels: ['January', 'February', 'March', 'April', 'May','June','July','Augest','September','October','November','December'],
+    labels: [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ],
     datasets: [
       {
-        label: 'Revenue ($)',
-        data: [12000, 15000, 13000, 17000, 19000,18000,17000,16000,15000,18000,14000,12000],
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        borderColor: 'rgba(75, 192, 192, 1)',
+        label: `Revenue ${currentYear} (Br)`,
+        data: monthlyRevenue,
+        backgroundColor: "rgba(75, 192, 192, 0.5)",
+        borderColor: "rgba(75, 192, 192, 1)",
         borderWidth: 1,
       },
     ],
@@ -30,122 +104,92 @@ const DashboardPage = () => {
 
   const options = {
     responsive: true,
-    plugins: {
-      title: {
-        display: true,
-        text: 'Monthly Revenue',
-      },
-    },
+    plugins: { title: { display: true, text: "Monthly Revenue (Br)" } },
   };
 
+  if (loading)
+    return (
+      <Box sx={{ textAlign: "center", mt: 10 }}>
+        <CircularProgress />
+        <Typography variant="h6" mt={2}>
+          Loading Dashboard Data...
+        </Typography>
+      </Box>
+    );
+
   return (
-    <Box
-      component="main"
-      sx={{
-        flexGrow: 1,
-        p: 3,
-        mt: 0,
-        transition: "margin 0.3s ease-in-out",
-        overflowX: 'hidden',  // Prevent horizontal overflow
-      }}
-    >
+    <Box sx={{ flexGrow: 1, p: 3, mt: 0 }}>
+      <Typography variant="h5" gutterBottom sx={{ fontWeight: "bold" }}>
+        🏨 Hotel Management Dashboard
+      </Typography>
+
       <Grid container spacing={3}>
-         {/* Card for Occupied Rooms */}
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper elevation={1} sx={{ borderRadius: 2 }}>
-            <Card sx={{ borderRadius: 2 }}>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
-                  Occupied Rooms
-                </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 'bold', mt: 2 }}>
-                  120
-                </Typography>
-              </CardContent>
-            </Card>
-          </Paper>
-        </Grid>
-
-        {/* Card for Total Revenue */}
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper elevation={1} sx={{ borderRadius: 2 }}>
-            <Card sx={{ borderRadius: 2 }}>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
-                  Total Revenue
-                </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 'bold', mt: 2 }}>
-                  $30,000
-                </Typography>
-              </CardContent>
-            </Card>
-          </Paper>
-        </Grid>
-
-        {/* Card for Bookings Today */}
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper elevation={1} sx={{ borderRadius: 2 }}>
-            <Card sx={{ borderRadius: 2 }}>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
-                  Bookings Today
-                </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 'bold', mt: 2 }}>
-                  45
-                </Typography>
-              </CardContent>
-            </Card>
-          </Paper>
-        </Grid>
-
-        {/* Card for Guests Checked In */}
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper elevation={1} sx={{ borderRadius: 2 }}>
-            <Card sx={{ borderRadius: 2 }}>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
-                  Guests Checked In
-                </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 'bold', mt: 2 }}>
-                  80
-                </Typography>
-              </CardContent>
-            </Card>
-          </Paper>
-        </Grid>
+        {[
+          { label: "Total Rooms", value: totalRooms },
+          { label: "Occupied Rooms", value: occupiedRooms },
+          { label: "Total Revenue", value: `${totalRevenue.toLocaleString()} Br` },
+          { label: "Bookings Today", value: todayBookings },
+          { label: "Registered Guests", value: guestsCount },
+        ].map((card, index) => (
+          <Grid item xs={12} sm={6} md={3} key={index}>
+            <Paper elevation={3} sx={{ borderRadius: 2 }}>
+              <Card sx={{ borderRadius: 2 }}>
+                <CardContent>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: "bold", color: "text.secondary" }}
+                  >
+                    {card.label}
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: "bold", mt: 2 }}>
+                    {card.value}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Paper>
+          </Grid>
+        ))}
       </Grid>
 
-      {/* Graph */}
+      {/* Revenue Chart */}
       <Grid container spacing={3} mt={3}>
         <Grid item xs={12}>
-          <Paper elevation={3} sx={{ padding: 2, maxWidth: '100%' }}>
+          <Paper elevation={3} sx={{ padding: 2, maxWidth: "100%" }}>
             <Bar data={data} options={options} />
           </Paper>
         </Grid>
       </Grid>
 
-      {/* Table */}
+      {/* Recent Bookings */}
       <Grid container spacing={3} mt={3}>
         <Grid item xs={12}>
           <Paper elevation={3} sx={{ padding: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              User Data Table
+            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
+              📅 Recent Bookings
             </Typography>
             <TableContainer>
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Age</TableCell>
-                    <TableCell>City</TableCell>
+                    <TableCell>Guest ID</TableCell>
+                    <TableCell>Room ID</TableCell>
+                    <TableCell>Check-In</TableCell>
+                    <TableCell>Check-Out</TableCell>
+                    <TableCell>Total Price (Br)</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {tableData.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell>{row.name}</TableCell>
-                      <TableCell>{row.age}</TableCell>
-                      <TableCell>{row.city}</TableCell>
+                  {recentBookings.map((b) => (
+                    <TableRow key={b.id}>
+                      <TableCell>{b.guestId}</TableCell>
+                      <TableCell>{b.roomId}</TableCell>
+                      <TableCell>
+                        {new Date(b.checkInDate).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(b.checkOutDate).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>{b.totalAmount?.toLocaleString() ?? "0"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

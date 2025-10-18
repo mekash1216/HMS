@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using HotelManagementAPI.Models; 
+using HotelManagementAPI.Models;
 
 namespace HotelManagementAPI.Data
 {
@@ -8,9 +8,10 @@ namespace HotelManagementAPI.Data
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options) { }
 
-        public DbSet<Room> Rooms { get; set; } 
-        public DbSet<Guest> Guests { get; set; } 
-        public DbSet<Booking> Bookings { get;set;}
+        public DbSet<Room> Rooms { get; set; }
+        public DbSet<Guest> Guests { get; set; }
+        public DbSet<Booking> Bookings { get; set; }
+        public DbSet<Invoice> Invoices { get; set; }
 
     }
 }

@@ -5,6 +5,7 @@ using HotelManagementAPI.Profiles;
 using AutoMapper;
 using HotelManagementAPI.Interfaces;
 using Microsoft.AspNetCore.Identity;
+using HotelManagementAPI.Repository.Implementation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +29,7 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>()
 builder.Services.AddScoped<IRoomRepository, RoomRepository>();
 builder.Services.AddScoped<IGuestRepository, GuestRepository>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 
 builder.Services.AddCors(options =>
 {
@@ -49,7 +51,7 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
 app.UseCors("AllowLocalhost");
 
 app.UseHttpsRedirection();
-app.UseAuthentication();  
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

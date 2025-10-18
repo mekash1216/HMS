@@ -45,8 +45,10 @@ const BookingForm = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [showGuestForm, setShowGuestForm] = useState(true);
-  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 5 });
-  
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 5,
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -99,37 +101,58 @@ const BookingForm = () => {
     }
   };
 
-  const handleBooking = async () => {
-    if (!selectedGuest || !selectedRoom || !checkInDate || !checkOutDate) {
-      alert("Please fill all booking fields!");
-      return;
-    }
+const handleBooking = async () => {
+  if (!selectedGuest || !selectedRoom || !checkInDate || !checkOutDate) {
+    alert("Please fill all booking fields!");
+    return;
+  }
 
-    const totalDays =
-      (new Date(checkOutDate).getTime() - new Date(checkInDate).getTime()) /
-      (1000 * 3600 * 24);
+  const totalDays =
+    (new Date(checkOutDate).getTime() - new Date(checkInDate).getTime()) /
+    (1000 * 3600 * 24);
 
-    const totalPrice = totalDays * selectedRoom.pricePerNight;
+  const totalPrice = totalDays * selectedRoom.pricePerNight;
 
-    const booking: Booking = {
-      guestId: selectedGuest.id,
-      roomId: selectedRoom.id,
-      checkInDate,
-      checkOutDate,
-      totalPrice,
-      // id: "",
-    };
+  const booking: Booking = {
+    guestId: selectedGuest.id,
+    roomId: selectedRoom.id,
+    checkInDate,
+    checkOutDate,
+    totalPrice,
+  };
 
+  try {
+    // 🟢 Try to create booking
     await createBooking(booking);
+
+    // Refresh bookings after successful creation
     const updatedBookings = await getBookings();
     setBookings(updatedBookings);
+
+    // Show success snackbar
     setSnackbarMsg("Booking successful!");
     setSnackbarOpen(true);
 
+    // Clear form
     setSelectedRoom(null);
     setCheckInDate("");
     setCheckOutDate("");
-  };
+  } catch (error: any) {
+    // 🔴 Handle conflict or server error messages
+    if (error.response && error.response.status === 409) {
+      // Show backend message: “This room is already booked for the selected dates.”
+      setSnackbarMsg(error.response.data.message);
+    } else if (error.response && error.response.data?.message) {
+      // Other backend errors
+      setSnackbarMsg(error.response.data.message);
+    } else {
+      // Unexpected error
+      setSnackbarMsg("Failed to create booking. Please try again.");
+    }
+    setSnackbarOpen(true);
+  }
+};
+
 
   const filteredBookings = bookings.filter((b) => {
     const guest = guests.find((g) => g.id === b.guestId);
@@ -140,29 +163,31 @@ const BookingForm = () => {
       : false;
   });
 
-  const rows = filteredBookings.filter((b) => b.id && b.id !== "").map((b, index) => {
-    const guest = guests.find((g) => g.id === b.guestId);
-    const room = rooms.find((r) => r.id === b.roomId);
-    const checkIn = new Date(b.checkInDate);
-    const checkOut = new Date(b.checkOutDate);
-    const nights = Math.ceil(
-      (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    const price = room ? room.pricePerNight * nights : 0;
-    const formattedPrice = new Intl.NumberFormat("en-ET", {
-      style: "currency",
-      currency: "ETB",
-    }).format(price);
+  const rows = filteredBookings
+    .filter((b) => b.id && b.id !== "")
+    .map((b, index) => {
+      const guest = guests.find((g) => g.id === b.guestId);
+      const room = rooms.find((r) => r.id === b.roomId);
+      const checkIn = new Date(b.checkInDate);
+      const checkOut = new Date(b.checkOutDate);
+      const nights = Math.ceil(
+        (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      const price = room ? room.pricePerNight * nights : 0;
+      const formattedPrice = new Intl.NumberFormat("en-ET", {
+        style: "currency",
+        currency: "ETB",
+      }).format(price);
 
-    return {
-      id: b.id, 
-      guestName: guest ? `${guest.firstName} ${guest.lastName}` : "N/A",
-      room: room ? `${room.roomNumber} - ${room.roomType}` : "N/A",
-      checkIn: checkIn.toLocaleDateString(),
-      checkOut: checkOut.toLocaleDateString(),
-      totalPrice: formattedPrice,
-    };
-  });
+      return {
+        id: b.id,
+        guestName: guest ? `${guest.firstName} ${guest.lastName}` : "N/A",
+        room: room ? `${room.roomNumber} - ${room.roomType}` : "N/A",
+        checkIn: checkIn.toLocaleDateString(),
+        checkOut: checkOut.toLocaleDateString(),
+        totalPrice: formattedPrice,
+      };
+    });
 
   const columns: GridColDef[] = [
     { field: "guestName", headerName: "Guest Name", flex: 1 },
@@ -177,16 +202,10 @@ const BookingForm = () => {
       sortable: false,
       renderCell: (params) => (
         <Box>
-          <IconButton
-            color="primary"
-            onClick={() => handleEdit(params.row.id)}
-          >
+          <IconButton color="primary" onClick={() => handleEdit(params.row.id)}>
             <EditIcon />
           </IconButton>
-          <IconButton
-            color="error"
-            onClick={() => handleDelete(params.row.id)}
-          >
+          <IconButton color="error" onClick={() => handleDelete(params.row.id)}>
             <DeleteIcon />
           </IconButton>
         </Box>
@@ -197,36 +216,36 @@ const BookingForm = () => {
   const handleEdit = (id: string | number) => {
     const booking = bookings.find((b) => b.id === id); // Find the booking by ID
     if (!booking) return;
-  
+
     const guest = guests.find((g) => g.id === booking.guestId); // Get guest by guestId
     const room = rooms.find((r) => r.id === booking.roomId); // Get room by roomId
-  
+
     // Set selected guest and room and booking dates in the state
     setSelectedGuest(guest || null);
     setSelectedRoom(room || null);
     setCheckInDate(booking.checkInDate);
     setCheckOutDate(booking.checkOutDate);
-  
+
     setDrawerOpen(true); // Open the drawer for editing the booking
   };
-  
-  
+
   const handleDelete = async (id: string | number) => {
     const stringId = String(id);
-  
+
     if (stringId.startsWith("fallback-")) {
       console.warn("Skipping delete: not a real booking ID.");
       return;
     }
-  
-    if (!window.confirm("Are you sure you want to delete this booking?")) return;
-  
+
+    if (!window.confirm("Are you sure you want to delete this booking?"))
+      return;
+
     try {
       console.log(`Attempting to delete booking with ID: ${stringId}`);
       await cancelBooking(stringId);
       const updatedBookings = await getBookings();
       setBookings(updatedBookings);
-  
+
       // Show success snackbar
       setSnackbarMsg("Booking deleted!");
       setSnackbarOpen(true);
@@ -237,8 +256,8 @@ const BookingForm = () => {
     }
   };
   const tableStyles = {
-    '& .MuiDataGrid-row:hover .action-buttons': {
-      display: 'flex',
+    "& .MuiDataGrid-row:hover .action-buttons": {
+      display: "flex",
     },
   };
 
@@ -269,17 +288,16 @@ const BookingForm = () => {
         Booking Records
       </Typography>
       <Box sx={{ height: 450, width: "100%" }}>
-           <DataGrid
-                  rows={rows}
-                  columns={columns}
-                  pagination
-                  paginationModel={paginationModel}
-                  onPaginationModelChange={setPaginationModel}
-                  pageSizeOptions={[5, 10, 20, 50, 100]}
-                  checkboxSelection
-                  sx={tableStyles}
-                />
-
+        <DataGrid
+          rows={rows}
+          columns={columns}
+          pagination
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[5, 10, 20, 50, 100]}
+          checkboxSelection
+          sx={tableStyles}
+        />
       </Box>
 
       <Drawer
@@ -376,8 +394,8 @@ const BookingForm = () => {
               {rooms.length > 0 ? (
                 rooms.map((room) => (
                   <MenuItem key={room.id} value={room.id}>
-                    {room.roomNumber} - {room.roomType} (
-                    {room.pricePerNight} ETB/night)
+                    {room.roomNumber} - {room.roomType} ({room.pricePerNight}{" "}
+                    ETB/night)
                   </MenuItem>
                 ))
               ) : (
@@ -427,7 +445,6 @@ const BookingForm = () => {
       </Snackbar>
     </Box>
   );
-  
 };
 
 export default BookingForm;
